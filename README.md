@@ -18,3 +18,7 @@
 (4)、result_column_name。结果字段的名称。大模型传回结果了，代码也临时保存了，这时候就需要写到表格中了，需要给结果命名了。比如分析用户的诉求，那结果字段就可以叫“用户诉求”，代码会创建新的一列字段“用户诉求”并将大模型传入的结果写入。
 (5)、file_path。结果保存到本地的地址。后缀为xlsx。
 (6)、model。默认为 Qwen-Plus，可修改，可选模型列表参考:https://help.aliyun.com/zh/model-studio/getting-started/models。   
+
+# 作者: 徐鹏
+# 邮箱: xupeng23456@126.com
+# 创建日期: 2025年4月24日
