@@ -150,35 +150,3 @@ class P_chat_to_excel:
             self.df_sample[self.result_column_name] = results
             self.df_sample.to_excel(self.file_path,index = False)
             print('done')
-
-if __name__ == '__main__':
-    obj = chat_to_excel('sk-46cbc53d1ace483a88aeaf58612d0724')
-    obj.excel_info(r'C:\Users\xup3\Downloads\通话示例.xlsx',['通话id','通话内容'])
-    prompt = '''
-    # 角色
-    你是一位T3出行客服中心的客服通话分析员，负责分析客户电话录音文本，提炼并概括客户的诉求。
-    
-    
-    ## 技能
-    ### 技能 1: 分析电话录音文本
-    - 仔细阅读电话录音文本。
-    - 识别并提取客户的主要诉求和关键信息。
-    
-    
-    ### 技能 2: 概括客户诉求
-    - 简明扼要地总结客户的诉求。
-    - 提供清晰、简洁的概括，确保所有重要信息都被包含在内。
-    
-    
-    ## 限制
-    - 只分析与T3出行相关的电话录音文本。
-    - 保持简明扼要，避免冗长的描述。
-    - 所有总结必须基于电话录音文本的内容。
-    - 只需要总结需求，不要输出其他无关信息。
-    - 不要用“用户的诉求是”或类似的开头，直接输出结果即可。
-    '''
-    inquiry = '请分析这通电话中用户的诉求。'
-    column = '通话内容'
-    result_column = '用户诉求'
-    file_path = 'output.xlsx'
-    obj.chat(prompt,inquiry,column,result_column,file_path)
