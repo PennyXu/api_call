@@ -1,9 +1,9 @@
-# api_call
-*** chat_to_excel 的核心思想（底层逻辑）为：调用通用大模型，针对传入 Excel 文件中的目标字段，依次向大模型发起询问。随后对大模型返回的结果进行解析，将解析后的数据保存至原 Excel 文件中，并对 Excel 格式加以调整，最终将其保存到本地。总的来说，就是先chat，得到结果后(save)to excel。
+# api_call方法：P_chat_to_excel
+*** P_chat_to_excel 的核心思想（底层逻辑）为：调用通用大模型，针对传入 Excel 文件中的目标字段，依次向大模型发起询问。随后对大模型返回的结果进行解析，将解析后的数据保存至原 Excel 文件中，并对 Excel 格式加以调整，最终将其保存到本地。总的来说，就是先chat，得到结果后(save)to excel。
 *** 需注意的点：
 1、目前仅支持单个字段的文本分析
 2、默认使用Qwen-Plus模型，可更换模型。可选模型列表参考:https://help.aliyun.com/zh/model-studio/getting-started/models。根据任务性质和价格更改！
-3、chat_to_excel采用了并行设计，线程为默认值，即根据CPU核心数，综合考虑系统资源来确定一个合适值。虽然核心思想是逐一遍历，但实际是多线程执行，效率较高。
+3、P_chat_to_excel采用了并行设计，线程为默认值，即根据CPU核心数，综合考虑系统资源来确定一个合适值。虽然核心思想是逐一遍历，但实际是多线程执行，效率较高。
 *** 方法介绍：
 1、excel_info。传入excel文件的方法。两个参数：path和column。path就是excel文件的本地位置，column就是关键字段，用list形式写入。如有关键字段a和b，则为['a','b']，如果只有a，则为['a']。传入后，可调用df属性（obj.df），获取表格信息。
 2、data_parsing。解析通话内容的方法：通话内容来源于datalake_t3_hotline_sgl.dls_t_cc_hotline_record_asr_result中的recog_result字段（sql取出来是什么就是什么，用该方法解析前不要做任何结构上的操作），该字段包括角色、内容、分贝、语速、时间等信息，为了节省资源损耗和时间消耗，可以用该方法保留关键信息，即说话角色和说话内容。且该方法针对开头非人工环节的录音也进行了过滤处理。该方法有一个参数：column，为解析目标字段的名称，即通话内容所在的字段的名称。
