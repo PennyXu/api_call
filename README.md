@@ -1,37 +1,74 @@
-# api_call方法：P_chat_to_excel
-*** P_chat_to_excel 的核心思想（底层逻辑）为：调用通用大模型，针对传入 Excel 文件中的目标字段，依次向大模型发起询问。随后对大模型返回的结果进行解析，将解析后的数据保存至原 Excel 文件中，并对 Excel 格式加以调整，最终将其保存到本地。总的来说，就是先chat，得到结果后(save)to excel。
+# Chat-to-Excel 智能表格分析工具
 
-*** 需注意的点：
-1、目前仅支持单个字段的文本分析
-2、默认使用Qwen-Plus模型，可更换模型。可选模型列表参考:https://help.aliyun.com/zh/model-studio/getting-started/models。根据任务性质和价格更改！
-3、P_chat_to_excel采用了并行设计，线程为默认值，即根据CPU核心数，综合考虑系统资源来确定一个合适值。虽然核心思想是逐一遍历，但实际是多线程执行，效率较高。
+通过大模型（如通义千问）自动解析Excel文本数据，支持检索增强生成（RAG）、智能分析、结果保存与Prompt配置本地保存，支持 PDF 知识库构建和智能问答生成。
 
-*** 方法介绍：
+---
 
-1、excel_info。传入excel文件的方法。两个参数：path和column。path就是excel文件的本地位置，column就是关键字段，用list形式写入。如有关键字段a和b，则为['a','b']，如果只有a，则为['a']。传入后，可调用df属性（obj.df），获取表格信息。
+## 📌 近期更新
 
-2、data_parsing。解析通话内容的方法：通话内容来源于datalake***.***_hotline_record_***中的recog_result字段（sql取出来是什么就是什么，用该方法解析前不要做任何结构上的操作），该字段包括角色、内容、分贝、语速、时间等信息，为了节省资源损耗和时间消耗，可以用该方法保留关键信息，即说话角色和说话内容。且该方法针对开头非人工环节的录音也进行了过滤处理。该方法有一个参数：column，为解析目标字段的名称，即通话内容所在的字段的名称。
+### **Prompt配置持久化** 🔄
+- **自动保存**：每次通过`info_collect()`设置的prompt参数，将自动保存至本地`prompt_tomb`目录
+- **按名称隔离**：通过`name`参数创建不同实例角色，调取本地相应的prompt参数，实现多组独立配置共存
+- **断点续用**：重启程序时自动加载同名实例的历史配置，无需重复输入参数
+- **灵活管理**：通过例如`info_collect(param='prompt')`或`prompt`属性可单独修改特定参数，保留其他配置不变
+- **细粒度控制**：支持通过chat(temperature=0.7)单独调整任意参数，保持其他配置不变。支持temperature、top_p、frequency_penalty
+- **PDF 知识库构建**：通过P_RAGKnowledgeBase将本地pdf文件转为向量数据库
+- **检索增强生成（RAG）**：内置P_RAGRetriever实现从知识库中找出与用户问题最相关信息的组件
+- **根据知识库的智能问答**：chat(kb,top_k)实现外挂知识库的智能问答
+- **自主设置并发量**：chat(max_workers)实现调整并发量以应对Open AI客户端请求超限
 
-3、data_sample。随机抽取出一定行数的数据。因为实际应用场景里，往往数据的量级是很大的，在调整大模型prompt和inquiry的过程中，不可能每次都跑完全部数据来对二者进行调整，这样费时费资源，因此需要随机抽取出n行，先在一小部分数据上调整完毕后，再跑全部数据。只有一个参数：num，即需要抽取多少行的数据。
+---
 
-4、info_collect。简单的交互式信息采集方法。一步步按照提示输入prompt、inquiry、column、result_column_name和file_path信息。信息会存储在环境中。如果需要修改，则需要设置param参数。例如，仅需要修改prompt，其余的不改，则info_collect(param = 'prompt')。如果全部填写，则不需要设置参数，info_collect()即可。
+## 🚀 主要功能
 
-5、chat。核心方法，集chat和to excel为一体。这个参数比较多（但只有一个需要设置，其余不需要，因为大多数都通过info_collect方法收集好了，chat方法会根据info_collect收集到的信息执行）。
-需要设置的参数：sample。类型为布尔值，即True或False。True时，仅跑data_sample后随机出来的数据，用来调试prompt和inquiry。False是，则跑全部数据。默认为False。
-不需要再次设置的参数：
-  
-  (1)、prompt。大模型中的prompt，即给大模型立的人设，如果想要通用大模型比较好的应付具体应用场景，这个必填。
-  
-  (2)、inquiry。询问大模型的话，即聊天框中输入的文字。
-  
-  (3)、column。目标字段的名字。比如想要大模型分析通话内容，那就需要将excel文件中通话内容所在的那个字段的名称告诉代码，代码才能传参至inquiry中。
-  
-  (4)、result_column_name。结果字段的名称。大模型传回结果了，代码也临时保存了，这时候就需要写到表格中了，需要给结果命名了。比如分析用户的诉求，那结果字段就可以叫“用户诉求”，代码会创建新的一列字段“用户诉求”并将大模型传入的结果写入。
-  
-  (5)、file_path。结果保存到本地的地址。后缀为xlsx。
-  
-  (6)、model。默认为 Qwen-Plus，可修改，可选模型列表参考:https://help.aliyun.com/zh/model-studio/getting-started/models。   
+### 1. 大模型交互
+- 支持各类大模型（默认qwen-plus）
+- 多线程并发处理（自动适配CPU核心数）
 
-# 作者: 徐鹏
-# 邮箱: xupeng23456@126.com
-# 创建日期: 2025年4月24日
+### 2. 灵活分析模式
+- **全量分析**：处理完整数据集
+- **抽样调试**：通过`data_sample()`抽取小样本测试Prompt效果
+- **单/多字段**：支持单列独立分析或多列联合分析
+
+### 3、检索增强生成（RAG）
+- **PDF知识库构建**：支持通过PDF文档构建领域知识库
+- **语义检索增强**：基于FAISS向量数据库实现毫秒级语义检索
+- **上下文感知**：自动将相关文档片段注入大模型上下文
+- **混合推理**：结合企业知识库与通用模型能力进行决策
+
+### 3. 结果输出
+- 自动插入分析结果列
+- 保留原始数据结构
+- 支持xlsx格式导出
+
+---
+
+## 使用示例（外挂数据库版，若不需要数据库，则无视第一步和obj.chat方法中的kb参数）
+
+### 根据本地pdf搭建向量数据库
+kb = P_RAGKnowledgeBase()，embedding_model_name默认为all-MiniLM-L6-v2，也可修改。默认chunk_size=500,chunk_overlap=50。
+kb.build_from_pdf(r"pdf_file_path")  # 替换为你的PDF路径
+
+### 初始化助理
+name = 'name'
+API_KEY = 'your_api_key'
+BASE_URL = 'your_base_url'
+obj = P_chat_to_excel(name,API_KEY,BASE_URL)
+
+### 导入数据
+obj.excel_info(path = r'excel_file_path',column=['COLUMN1','COLUMN2']) # 替换为你的excel路径和目标字段名
+
+### 抽取小样本测试
+obj.data_sample(10) # 抽取10条
+
+### 配置prompt等相关信息
+obj.info_collect()
+
+### 针对样本数据智能问答并本地保存结果至excel
+obj.chat(sample = True,temperature=0.2,top_p=0.7,kb=kb,top_k=3)
+
+### 根据在样本上的输出效果修改prompt
+obj.prompt = '''string''' # 替换为prompt的改善版本
+
+### 若结果尚可，则保留原本配置，跑全量数据
+obj.chat(sample = False,temperature=0.2,top_p=0.7,kb=kb,top_k=3)
